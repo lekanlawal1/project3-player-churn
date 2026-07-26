@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Player Churn Explorer — FIFA 18→19</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="data.js"></script>
+<style>
+  :root {
+    color-scheme: dark;
+    --page: #0a1810; --surface: #122a1c; --surface-2: #17332a;
+    --ink: #f2f7f0; --ink-2: #c3d1c7; --muted: #7f9188;
+    --grid: #21382a; --border: rgba(140,255,180,0.12); --border-strong: rgba(140,255,180,0.32);
+    --s1: #17a750;    /* pitch green — primary / actual outcome */
+    --s2: #0083ad;    /* stadium teal — secondary / predicted */
+    --gold: #e0a941;  /* FUT gold — accent / warning (text use) */
+    --gold-mark: #a67700; /* darker gold for chart marks — passes dark-mode categorical checks vs teal */
+    --good: #22c55e; --critical: #f0585a;
+    --glow-1: rgba(23,167,80,.38); --glow-2: rgba(0,131,173,.32);
+    --glow-gold: rgba(224,169,65,.38); --glow-critical: rgba(240,88,90,.35);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  html, body { overflow-x: hidden; }
+  body {
+    background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 0 0 60px;
+  }
+  ::-webkit-scrollbar { height: 10px; width: 10px; }
+  ::-webkit-scrollbar-track { background: var(--page); }
+  ::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: 999px; border: 2px solid var(--page); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--s1); }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
+
+  /* ---------- hero ---------- */
+  @keyframes riseIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(26px); } }
+  .hero {
+    position: relative; overflow: hidden; isolation: isolate;
+    background: linear-gradient(135deg, #0a1810 0%, #0d2b1d 32%, #063842 68%, #0a1810 100%);
+    padding: 54px 0 30px; border-bottom: 1px solid var(--border-strong);
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: -20% -10%; z-index: -1;
+    background: repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 46px);
+    pointer-events: none;
+  }
+  .hero-glow {
+    position: absolute; z-index: -1; width: 520px; height: 520px; border-radius: 50%;
+    background: radial-gradient(circle, var(--glow-1), transparent 70%);
+    top: -240px; right: -140px; filter: blur(6px); pointer-events: none;
+    animation: float 11s ease-in-out infinite;
+  }
+  .hero-glow.b {
+    background: radial-gradient(circle, var(--glow-2), transparent 70%);
+    top: auto; bottom: -260px; right: auto; left: -160px; width: 460px; height: 460px;
+    animation-duration: 14s; animation-delay: -4s;
+  }
+  .eyebrow {
+    font-family: "Rajdhani", sans-serif; font-weight: 600; font-size: .78rem;
+    letter-spacing: .2em; text-transform: uppercase; color: var(--gold);
+    animation: riseIn .5s ease backwards;
+  }
+  .hero h1 {
+    font-family: "Rajdhani", system-ui, sans-serif; font-weight: 700; text-transform: uppercase;
+    font-size: clamp(1.9rem, 5vw, 3.3rem); letter-spacing: .01em; line-height: 1.05; margin-top: 8px;
+    animation: riseIn .55s ease .05s backwards;
+  }
+  .hero h1 .dim { color: var(--muted); font-weight: 500; }
+  .accent-grad {
+    background: linear-gradient(90deg, var(--s1), var(--s2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero .sub {
+    color: var(--ink-2); margin-top: 14px; max-width: 62rem; line-height: 1.55; font-size: .98rem;
+    animation: riseIn .55s ease .1s backwards;
+  }
+  .hero .sub a { color: var(--gold); text-decoration: none; border-bottom: 1px solid rgba(224,169,65,.4); transition: border-color .2s; }
+  .hero .sub a:hover { border-color: var(--gold); }
+
+  /* ---------- kpis ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: -30px 0 30px; position: relative; z-index: 2; }
+  .kpi {
+    background: linear-gradient(160deg, var(--surface), var(--surface-2));
+    border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px 16px;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+    position: relative; overflow: hidden;
+    transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease, border-color .25s ease;
+    animation: riseIn .5s ease backwards;
+  }
+  .kpi:nth-child(1) { animation-delay: .05s; } .kpi:nth-child(2) { animation-delay: .12s; }
+  .kpi:nth-child(3) { animation-delay: .19s; } .kpi:nth-child(4) { animation-delay: .26s; }
+  .kpi::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
+  .kpi::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .13;
+    background: radial-gradient(140px 90px at 100% 0%, var(--accent), transparent 70%);
+  }
+  .kpi:hover { transform: translateY(-6px); border-color: var(--accent); box-shadow: 0 18px 32px -14px var(--glow); }
+  .kpi .l { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+  .kpi .v {
+    font-family: "Rajdhani", sans-serif; font-weight: 700; font-size: 2.3rem; margin-top: 3px;
+    color: var(--accent); text-shadow: 0 0 22px var(--glow);
+  }
+  .kpi .d { color: var(--ink-2); font-size: .78rem; margin-top: 5px; line-height: 1.35; }
+
+  /* ---------- cards ---------- */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: linear-gradient(180deg, var(--surface), var(--surface) 65%, var(--surface-2));
+    border: 1px solid var(--border); border-radius: 14px; padding: 16px 14px 6px; margin-bottom: 16px;
+    position: relative; overflow: hidden;
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    animation: riseIn .5s ease .08s backwards;
+  }
+  .card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; opacity: .8;
+    background: linear-gradient(90deg, var(--s1), var(--s2));
+  }
+  .card:hover { transform: translateY(-3px); border-color: var(--border-strong); box-shadow: 0 16px 30px -20px rgba(0,0,0,.7); }
+  .card h2 {
+    font-family: "Rajdhani", sans-serif; font-weight: 700; font-size: 1.08rem; letter-spacing: .02em;
+    text-transform: uppercase; padding: 2px 4px 2px; color: var(--ink);
+  }
+  .card .note { color: var(--muted); font-size: .78rem; padding: 2px 4px 8px; line-height: 1.4; }
+  .plot { width: 100%; height: 300px; }
+
+  /* ---------- controls ---------- */
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; padding: 6px 4px 12px; }
+  .controls input {
+    background: var(--page); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 999px; padding: 10px 16px; font-size: .9rem; flex: 1; min-width: 180px;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .controls input::placeholder { color: var(--muted); }
+  .controls input:focus { outline: none; border-color: var(--s1); box-shadow: 0 0 0 3px var(--glow-1); }
+
+  /* ---------- table ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+  thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; transition: color .15s ease; }
+  th:hover { color: var(--ink); }
+  th.sorted { color: var(--s1); }
+  th.sorted::after { content: attr(data-arrow); margin-left: 5px; font-size: .7em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr { transition: background .15s ease; }
+  tbody tr { cursor: pointer; }
+  tr:hover td { background: rgba(23,167,80,.07); }
+  tr:hover td:first-child { box-shadow: inset 3px 0 0 var(--s1); }
+  tbody tr td:last-child { position: relative; }
+  tbody tr:hover td:last-child::after {
+    content: "›"; position: absolute; right: -4px; top: 50%; transform: translateY(-50%);
+    color: var(--s1); font-size: 1.15rem; font-weight: 700;
+  }
+  tbody tr:focus-visible { outline: 2px solid var(--s1); outline-offset: -2px; }
+  .riskwrap {
+    display: inline-block; width: 60px; height: 8px; border-radius: 999px;
+    background: rgba(255,255,255,.07); vertical-align: middle; margin-right: 8px; overflow: hidden;
+  }
+  .riskfill { display: block; height: 100%; border-radius: 999px; transition: width .4s ease; }
+  .riskval { font-variant-numeric: tabular-nums; }
+  .stay { color: var(--good); font-weight: 600; }
+  .left { color: var(--critical); font-weight: 600; }
+  .hit {
+    display: inline-block; border: 1px solid var(--border); border-radius: 999px; margin-left: 6px;
+    padding: 2px 9px; font-size: .7rem; color: var(--muted); white-space: nowrap;
+  }
+  .hit-yes { color: var(--good); border-color: rgba(34,197,94,.4); background: rgba(34,197,94,.08); }
+  .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  footer { color: var(--muted); font-size: .8rem; margin-top: 22px; line-height: 1.5; padding-bottom: 4px; }
+
+  @media (max-width: 560px) {
+    .hero { padding: 40px 0 24px; }
+    .kpis { margin-top: -22px; grid-template-columns: 1fr; }
+    .kpi .v { font-size: 1.9rem; }
+    .controls { flex-direction: column; }
+    .controls input { min-width: 0; }
+  }
+
+  /* ---------- player drawer ---------- */
+  .drawer-backdrop {
+    position: fixed; inset: 0; background: rgba(4,10,7,.6); backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none; transition: opacity .25s ease; z-index: 40;
+  }
+  .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; height: 100vh; width: min(440px, 92vw);
+    background: linear-gradient(180deg, var(--surface), var(--surface-2));
+    border-left: 1px solid var(--border-strong);
+    box-shadow: -24px 0 48px -24px rgba(0,0,0,.6);
+    transform: translateX(100%); transition: transform .3s cubic-bezier(.2,.8,.2,1);
+    z-index: 41; overflow-y: auto;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-close {
+    position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--border); background: rgba(0,0,0,.2); color: var(--ink-2);
+    font-size: 15px; line-height: 1; cursor: pointer; transition: all .2s ease; z-index: 1;
+  }
+  .drawer-close:hover { color: var(--ink); border-color: var(--border-strong); background: rgba(255,255,255,.08); }
+  .drawer-body { padding: 54px 24px 32px; }
+  .dp-eyebrow { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
+  .dp-name { font-family: "Rajdhani", sans-serif; font-weight: 700; font-size: 1.9rem; text-transform: uppercase; line-height: 1.1; margin-top: 4px; }
+  .dp-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+  .dp-badge { border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px; font-size: .75rem; color: var(--ink-2); }
+  .dp-stats { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-top: 20px; }
+  .dp-stat { background: rgba(0,0,0,.18); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+  .dp-stat .l { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; }
+  .dp-stat .v { font-family: "Rajdhani", sans-serif; font-weight: 700; font-size: 1.4rem; margin-top: 2px; }
+  .dp-section-title { font-family: "Rajdhani", sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; font-size: .92rem; margin: 26px 0 4px; color: var(--ink); }
+  .dp-note { color: var(--muted); font-size: .78rem; line-height: 1.4; margin-bottom: 10px; }
+  .dp-plot { width: 100%; height: 210px; }
+  .dp-percentile { font-size: .86rem; color: var(--ink-2); margin-top: 12px; line-height: 1.5; }
+  .dp-percentile b { color: var(--ink); }
+  .dp-cta {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 24px; padding: 10px 18px;
+    border-radius: 999px; border: 1px solid var(--border-strong); background: rgba(23,167,80,.1);
+    color: var(--s1); font-weight: 600; font-size: .86rem; cursor: pointer; transition: all .2s ease;
+  }
+  .dp-cta:hover { background: rgba(23,167,80,.18); border-color: var(--s1); }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow b"></div>
+  <div class="wrap">
+    <p class="eyebrow">Data / AI Portfolio — Project 3</p>
+    <h1>Player Churn <span class="accent-grad">Explorer</span> <span class="dim">FIFA 18 → 19</span></h1>
+    <p class="sub">Which players leave their club before next season? A gradient-boosted model scores all
+      <b id="h-n"></b> players present in both editions — and because we know what actually happened,
+      every prediction below is shown next to its real outcome. Risk scores are out-of-fold: no player
+      is scored by a model that trained on them.
+      <a href="https://github.com/lekanlawal1/project3-player-churn">Source, SQL pipeline &amp; docs</a></p>
+  </div>
+</div>
+
+<div class="wrap">
+<div class="kpis">
+  <div class="kpi" style="--accent:var(--s1); --glow:var(--glow-1)"><div class="l">Players in scope</div><div class="v" id="k-n"></div><div class="d">present in both editions, club on both sides</div></div>
+  <div class="kpi" style="--accent:var(--critical); --glow:var(--glow-critical)"><div class="l">Churn rate</div><div class="v" id="k-churn"></div><div class="d">left their club between seasons</div></div>
+  <div class="kpi" style="--accent:var(--s2); --glow:var(--glow-2)"><div class="l">Model ROC-AUC</div><div class="v" id="k-auc"></div><div class="d">gradient boosting, held-out test set</div></div>
+  <div class="kpi" style="--accent:var(--gold); --glow:var(--glow-gold)"><div class="l">Club renames caught</div><div class="v" id="k-renames"></div><div class="d">entity resolution removed 8.4 pts of phantom churn</div></div>
+</div>
+
+<div class="card">
+  <h2>Retention watchlist — search any club</h2>
+  <p class="note">Default view: the 25 highest-risk players in the data. Type a club (e.g. Real Madrid, Arsenal) to see its whole squad ranked by risk, or search a player. Click a column header to sort. <b>Outcome</b> is what really happened in FIFA 19.</p>
+  <div class="controls">
+    <input id="club" list="clubs" placeholder="Filter by club…">
+    <datalist id="clubs"></datalist>
+    <input id="player" placeholder="Search player name…">
+  </div>
+  <div class="tablewrap"><table id="watchlist">
+    <thead><tr>
+      <th data-k="0">Player</th><th data-k="1">Club</th><th class="num" data-k="2">Age</th>
+      <th data-k="3">Pos</th><th class="num" data-k="4">Rating</th><th class="num" data-k="5">Wage</th>
+      <th class="num" data-k="6">Predicted risk</th><th data-k="7">Outcome</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <p class="note" id="tally"></p>
+</div>
+
+<div class="grid">
+  <div class="card"><h2>Churn rate by position</h2>
+    <p class="note">Forwards are the flight risks; goalkeepers barely move.</p>
+    <div class="plot" id="p-pos"></div></div>
+  <div class="card"><h2>Churn rate by age band</h2>
+    <p class="note">Ages 21–24 are peak departure years — the prime sell window.</p>
+    <div class="plot" id="p-age"></div></div>
+  <div class="card"><h2>Churn rate by wage position in squad</h2>
+    <p class="note">Paid above your squad’s median → likelier to leave.</p>
+    <div class="plot" id="p-wage"></div></div>
+  <div class="card"><h2>Does predicted risk track reality?</h2>
+    <p class="note">Players bucketed into ten deciles by predicted risk. Prediction hugging outcome = honest scores.</p>
+    <div class="plot" id="p-calib"></div></div>
+</div>
+
+<div class="card"><h2>What the model leans on</h2>
+  <p class="note">Permutation importance: how much test-set AUC drops when each feature is shuffled.</p>
+  <div class="plot" id="p-imp" style="height:340px"></div></div>
+
+<footer>
+  Data: FIFA 18 &amp; FIFA 19 player datasets (SoFIFA scrapes, public mirrors) · Pipeline: DuckDB + versioned SQL + scikit-learn ·
+  Built as Project 3 of a 4-project data/AI portfolio. Charts show associations, not causes.
+</footer>
+</div>
+
+<div class="drawer-backdrop" id="backdrop"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Player detail">
+  <button class="drawer-close" id="drawerClose" aria-label="Close player detail">✕</button>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<script>
+const M = DATA.meta, fmtPct = v => (v*100).toFixed(1) + "%";
+document.getElementById("h-n").textContent = M.n_players.toLocaleString();
+document.getElementById("k-n").textContent = M.n_players.toLocaleString();
+document.getElementById("k-churn").textContent = fmtPct(M.churn_rate);
+document.getElementById("k-auc").textContent = M.auc.toFixed(3);
+document.getElementById("k-renames").textContent = M.renames_caught;
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const AX = { color: css("--muted"), gridcolor: css("--grid"), zerolinecolor: css("--grid") };
+const LAYOUT = {
+  paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+  font: { family: "system-ui, sans-serif", color: css("--ink-2"), size: 12 },
+  margin: { l: 60, r: 20, t: 8, b: 40 }, hovermode: "closest",
+};
+const CFG = { displayModeBar: false, responsive: true };
+
+function rateBar(el, rows, labelIdx = 0) {
+  const cats = rows.map(r => String(r[labelIdx]));
+  const vals = rows.map(r => r[1]);
+  Plotly.newPlot(el, [{
+    type: "bar", x: cats, y: vals, marker: { color: css("--s1") },
+    width: 0.55, text: vals.map(fmtPct), textposition: "outside",
+    textfont: { color: css("--ink") },
+    customdata: rows.map(r => r[2].toLocaleString()),
+    hovertemplate: "%{x}: %{text} churn · %{customdata} players<extra></extra>",
+  }], { ...LAYOUT, yaxis: { ...AX, tickformat: ".0%", rangemode: "tozero" }, xaxis: { ...AX } }, CFG);
+}
+rateBar("p-pos", DATA.by_position);
+const ageOrder = ["U21","21-24","25-28","29-32","33+"];
+rateBar("p-age", [...DATA.by_age_band].sort((a,b)=>ageOrder.indexOf(a[0])-ageOrder.indexOf(b[0])));
+const wq = ["bottom 25%","lower mid","upper mid","top 25%"];
+rateBar("p-wage", [...DATA.by_wage_q].sort((a,b)=>wq.indexOf(a[0])-wq.indexOf(b[0])));
+
+Plotly.newPlot("p-calib", [
+  { type: "scatter", mode: "lines+markers", name: "Predicted risk",
+    x: DATA.calibration.map(r=>r[0]+1), y: DATA.calibration.map(r=>r[1]),
+    line: { color: css("--s2"), width: 2 }, marker: { size: 8 },
+    hovertemplate: "Decile %{x} — predicted %{y:.0%}<extra></extra>" },
+  { type: "scatter", mode: "lines+markers", name: "Actual churn",
+    x: DATA.calibration.map(r=>r[0]+1), y: DATA.calibration.map(r=>r[2]),
+    line: { color: css("--s1"), width: 2 }, marker: { size: 8 },
+    hovertemplate: "Decile %{x} — actually left: %{y:.0%}<extra></extra>" },
+], { ...LAYOUT, legend: { orientation: "h", y: 1.15 },
+     xaxis: { ...AX, title: { text: "risk decile (1 = safest)", font: { size: 11 } }, dtick: 1 },
+     yaxis: { ...AX, tickformat: ".0%", rangemode: "tozero" } }, CFG);
+
+const imp = [...DATA.importance].slice(0, 9).reverse();
+Plotly.newPlot("p-imp", [{
+  type: "bar", orientation: "h",
+  y: imp.map(r=>r[0]), x: imp.map(r=>r[1]), marker: { color: css("--s1") }, width: 0.55,
+  hovertemplate: "%{y}: AUC −%{x:.4f} when shuffled<extra></extra>",
+}], { ...LAYOUT, margin: { ...LAYOUT.margin, l: 160 }, xaxis: { ...AX }, yaxis: { ...AX } }, CFG);
+
+// ---- Watchlist ----
+const P = DATA.players; // [name, club, age, pos, overall, wage, risk, churned]
+document.getElementById("clubs").innerHTML = M.clubs.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">`).join("");
+let sortK = 6, sortDir = -1;
+let currentShown = [];
+const tbody = document.querySelector("#watchlist tbody");
+const riskColor = r => r < 0.33 ? css("--good") : r < 0.66 ? css("--gold") : css("--critical");
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+// ---- Peer-comparison helpers (mirror the exact bucket logic behind the aggregate charts) ----
+const clubWages = {};
+P.forEach(r => { (clubWages[r[1]] ||= []).push(r[5]); });
+const median = arr => { const s = [...arr].sort((a,b)=>a-b), m = Math.floor(s.length/2); return s.length % 2 ? s[m] : (s[m-1]+s[m])/2; };
+const clubMedianWage = {};
+Object.keys(clubWages).forEach(c => clubMedianWage[c] = median(clubWages[c]));
+const wageRatio = r => r[5] / (clubMedianWage[r[1]] || 1);
+const sortedRatios = P.map(wageRatio).sort((a,b)=>a-b);
+const ratioAt = p => sortedRatios[Math.min(sortedRatios.length - 1, Math.floor(p * sortedRatios.length))];
+const RQ1 = ratioAt(.25), RQ2 = ratioAt(.5), RQ3 = ratioAt(.75);
+const wageQuartile = r => { const ra = wageRatio(r); return ra <= RQ1 ? "bottom 25%" : ra <= RQ2 ? "lower mid" : ra <= RQ3 ? "upper mid" : "top 25%"; };
+const ageBand = age => age < 21 ? "U21" : age <= 24 ? "21-24" : age <= 28 ? "25-28" : age <= 32 ? "29-32" : "33+";
+const sortedRisks = P.map(r => r[6]).sort((a,b)=>a-b);
+function percentileOf(risk) {
+  let lo = 0, hi = sortedRisks.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (sortedRisks[mid] < risk) lo = mid + 1; else hi = mid; }
+  return Math.round((lo / sortedRisks.length) * 100);
+}
+function avgRisk(filterFn) { const arr = P.filter(filterFn); return arr.length ? arr.reduce((s,r)=>s+r[6],0) / arr.length : 0; }
+function ordinal(n) { const s = ["th","st","nd","rd"], v = n % 100; return n + (s[(v-20)%10] || s[v] || s[0]); }
+
+function render() {
+  const club = document.getElementById("club").value.trim().toLowerCase();
+  const q = document.getElementById("player").value.trim().toLowerCase();
+  let rows = P;
+  if (club) rows = rows.filter(r => String(r[1]).toLowerCase().includes(club));
+  if (q) rows = rows.filter(r => String(r[0]).toLowerCase().includes(q));
+  rows = [...rows].sort((a,b) => (a[sortK] > b[sortK] ? 1 : a[sortK] < b[sortK] ? -1 : 0) * sortDir);
+  const shown = (club || q) ? rows : rows.slice(0, 25);
+  currentShown = shown;
+  tbody.innerHTML = shown.map((r, i) => {
+    const risk = r[6], out = r[7] === 1;
+    const hit = (risk >= 0.5) === out;
+    return `<tr tabindex="0" role="button" data-idx="${i}" aria-label="View details for ${esc(r[0])}">
+      <td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td>
+      <td class="num">${r[2]}</td><td>${r[3]}</td><td class="num">${r[4]}</td>
+      <td class="num">€${Number(r[5]).toLocaleString()}</td>
+      <td class="num">
+        <span class="riskwrap"><span class="riskfill" style="width:${Math.round(risk*100)}%;background:${riskColor(risk)}"></span></span><span class="riskval">${(risk*100).toFixed(0)}%</span>
+      </td>
+      <td>${out ? '<span class="left">Left</span>' : '<span class="stay">Stayed</span>'}
+          <span class="hit${hit ? ' hit-yes' : ''}">${hit ? "called it" : "missed"}</span></td>
+    </tr>`;
+  }).join("");
+  document.getElementById("tally").textContent = (club || q)
+    ? `${rows.length} players match — model called ${rows.filter(r => (r[6]>=0.5)===(r[7]===1)).length} of them correctly.`
+    : `Showing the top 25 risks of ${P.length.toLocaleString()} players. Of these 25, ${shown.filter(r=>r[7]===1).length} really did leave.`;
+}
+
+// ---- Player detail drawer ----
+const drawer = document.getElementById("drawer");
+const backdrop = document.getElementById("backdrop");
+const drawerBody = document.getElementById("drawerBody");
+let lastFocused = null;
+
+function openPlayer(r) {
+  const [name, club, age, pos, overall, wage, risk, churned] = r;
+  const out = churned === 1;
+  const hit = (risk >= 0.5) === out;
+  const band = ageBand(age);
+  const wq = wageQuartile(r);
+  const pct = percentileOf(risk);
+
+  const shortLabel = s => s.length > 12 ? s.slice(0, 11) + "…" : s;
+  const peers = [
+    { label: "This player", value: risk, subject: true },
+    { label: `${pos} average`, value: avgRisk(x => x[3] === pos) },
+    { label: `Age ${band} average`, value: avgRisk(x => ageBand(x[2]) === band) },
+    { label: `Wage ${wq} average`, value: avgRisk(x => wageQuartile(x) === wq) },
+    { label: `${shortLabel(club)} squad avg.`, value: avgRisk(x => x[1] === club) },
+    { label: "All players average", value: avgRisk(() => true) },
+  ];
+
+  drawerBody.innerHTML = `
+    <p class="dp-eyebrow">${esc(pos)} · ${esc(club)}</p>
+    <h3 class="dp-name">${esc(name)}</h3>
+    <div class="dp-badges">
+      <span class="dp-badge">Age ${age}</span>
+      <span class="dp-badge">Rating ${overall}</span>
+      <span class="dp-badge">€${Number(wage).toLocaleString()}</span>
+      <span class="dp-badge">${out ? '<span class="left">Left</span>' : '<span class="stay">Stayed</span>'}</span>
+      <span class="hit${hit ? ' hit-yes' : ''}">${hit ? "model called it" : "model missed"}</span>
+    </div>
+
+    <div class="dp-stats">
+      <div class="dp-stat"><div class="l">Predicted risk</div><div class="v" style="color:${riskColor(risk)}">${(risk*100).toFixed(0)}%</div></div>
+      <div class="dp-stat"><div class="l">Risk percentile</div><div class="v">${ordinal(pct)}</div></div>
+    </div>
+    <p class="dp-percentile">Riskier than <b>${pct}%</b> of all ${P.length.toLocaleString()} tracked players — and ${out ? "did in fact leave" : "stayed put"} in FIFA 19.</p>
+
+    <h4 class="dp-section-title">Risk in context</h4>
+    <p class="dp-note">This player's predicted risk against players sharing the same position, age band, wage tier, and squad.</p>
+    <div class="dp-plot" id="dp-peer"></div>
+
+    <div class="dp-cta" id="dp-squad-link">View ${esc(club)}'s full squad in the watchlist →</div>
+  `;
+
+  Plotly.newPlot("dp-peer", [{
+    type: "bar", orientation: "h",
+    y: peers.map(p=>p.label).slice().reverse(),
+    x: peers.map(p=>p.value).slice().reverse(),
+    marker: { color: peers.map(p=> p.subject ? css("--gold-mark") : css("--s2")).slice().reverse() },
+    width: 0.6, text: peers.map(p=>fmtPct(p.value)).slice().reverse(),
+    textposition: "outside", textfont: { color: css("--ink"), size: 10.5 },
+    hovertemplate: "%{y}: %{text}<extra></extra>",
+    cliponaxis: false,
+  }], { ...LAYOUT, margin: { l: 145, r: 40, t: 8, b: 30 },
+        xaxis: { ...AX, tickformat: ".0%", range: [0, 1.3], dtick: 0.25 },
+        yaxis: { ...AX, tickfont: { size: 10.5 } } }, CFG);
+
+  document.getElementById("dp-squad-link").addEventListener("click", () => {
+    closeDrawer();
+    document.getElementById("club").value = club;
+    document.getElementById("player").value = "";
+    render();
+    document.querySelector(".card").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  lastFocused = document.activeElement;
+  drawer.classList.add("open"); backdrop.classList.add("open");
+  drawer.setAttribute("aria-hidden", "false");
+  document.getElementById("drawerClose").focus();
+}
+function closeDrawer() {
+  drawer.classList.remove("open"); backdrop.classList.remove("open");
+  drawer.setAttribute("aria-hidden", "true");
+  if (lastFocused) lastFocused.focus();
+}
+document.getElementById("drawerClose").addEventListener("click", closeDrawer);
+backdrop.addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && drawer.classList.contains("open")) closeDrawer(); });
+tbody.addEventListener("click", e => {
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  const idx = Number(tr.dataset.idx);
+  if (!Number.isNaN(idx) && currentShown[idx]) openPlayer(currentShown[idx]);
+});
+tbody.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  e.preventDefault();
+  const idx = Number(tr.dataset.idx);
+  if (!Number.isNaN(idx) && currentShown[idx]) openPlayer(currentShown[idx]);
+});
+document.querySelectorAll("#watchlist th").forEach(th => th.addEventListener("click", () => {
+  const k = Number(th.dataset.k);
+  sortDir = (k === sortK) ? -sortDir : (k >= 2 && k <= 6 ? -1 : 1);
+  sortK = k;
+  document.querySelectorAll("#watchlist th").forEach(t => { t.classList.remove("sorted"); t.removeAttribute("data-arrow"); });
+  th.classList.add("sorted");
+  th.setAttribute("data-arrow", sortDir === 1 ? "▲" : "▼");
+  render();
+}));
+document.querySelector(`#watchlist th[data-k="${sortK}"]`).classList.add("sorted");
+document.querySelector(`#watchlist th[data-k="${sortK}"]`).setAttribute("data-arrow", sortDir === 1 ? "▲" : "▼");
+document.getElementById("club").addEventListener("input", render);
+document.getElementById("player").addEventListener("input", render);
+render();
+</script>
+</body>
+</html>
