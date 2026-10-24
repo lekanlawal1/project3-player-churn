@@ -10,7 +10,7 @@ flowchart LR
         A19["fifa19_players_raw.csv<br/>18,207 × 88"]
     end
 
-    subgraph duck["DuckDB — data/processed/churn.duckdb"]
+    subgraph duck["DuckDB - data/processed/churn.duckdb"]
         B18["raw_fifa18<br/>(all VARCHAR)"]
         B19["raw_fifa19<br/>(all VARCHAR)"]
         C18["clean_f18"]
@@ -20,7 +20,7 @@ flowchart LR
         F["features<br/><i>03 windows + bucketing</i>"]
     end
 
-    subgraph model["Models — src/train.py"]
+    subgraph model["Models - src/train.py"]
         G["logistic regression<br/>(interpretable baseline)"]
         H["gradient boosting<br/>(stronger learner)"]
     end
@@ -39,24 +39,24 @@ flowchart LR
     F --> H
     G --> I["output/: metrics · coefficients ·<br/>importances · driver crosstabs · chart"]
     H --> I
-    F -->|"src/export_dashboard.py<br/>(out-of-fold scores)"| J["dashboard/ — interactive explorer<br/>(GitHub Pages)"]
+    F -->|"src/export_dashboard.py<br/>(out-of-fold scores)"| J["dashboard/ - interactive explorer<br/>(GitHub Pages)"]
 ```
 
 ## Stage responsibilities
 
 | Stage | Owner | Why there |
 |---|---|---|
-| Ingest | `src/ingest.py` | Raw CSVs land in DuckDB as all-VARCHAR tables — byte-faithful raw layer, no parser-default type guesses. |
+| Ingest | `src/ingest.py` | Raw CSVs land in DuckDB as all-VARCHAR tables - byte-faithful raw layer, no parser-default type guesses. |
 | Clean | `src/clean.py` (pandas) | Row-level work: money-string parsing, dedup, type coercion. Every decision emits a line in [cleaning_log.md](cleaning_log.md). |
-| Transform | `sql/01–03` (DuckDB SQL) | Set-level work: majority-vote entity resolution, the label join, window-function squad features, CASE bucketing. Versioned `.sql` files are the source of truth — the dbt separation, without the dbt dependency. |
+| Transform | `sql/01–03` (DuckDB SQL) | Set-level work: majority-vote entity resolution, the label join, window-function squad features, CASE bucketing. Versioned `.sql` files are the source of truth - the dbt separation, without the dbt dependency. |
 | Model | `src/train.py` | Two-model comparison, imbalance-aware metrics, interpretability artifacts. |
 
 ## Why DuckDB
 
 An embedded analytical database: full SQL (window functions, `MEDIAN`,
-`IS DISTINCT FROM`) running in-process against a single file — no server to
+`IS DISTINCT FROM`) running in-process against a single file - no server to
 install, secure, or keep running, which is exactly the modern-data-stack
 trade (DuckDB is to OLAP what SQLite is to OLTP). The pipeline stays
 one-command reproducible on any machine, and the SQL is portable to a
 warehouse (Snowflake/BigQuery) with minimal edits if the data outgrew a
-laptop — which at 18K rows it does not.
+laptop - which at 18K rows it does not.

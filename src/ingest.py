@@ -1,4 +1,4 @@
-"""Stage 1 — Ingest: load both raw CSVs into DuckDB untouched.
+"""Stage 1 - Ingest: load both raw CSVs into DuckDB untouched.
 
 Raw files land in DuckDB as all-VARCHAR tables on purpose: the database holds
 an exact copy of what arrived, and every type decision happens downstream in
@@ -27,7 +27,7 @@ def run() -> list[str]:
             [str(path)],
         )
         n, c = con.execute(f"SELECT COUNT(*), (SELECT COUNT(*) FROM pragma_table_info('{table}')) FROM {table}").fetchone()
-        log.append(f"**Ingested {path.name} → `{table}`: {n:,} rows × {c} columns, all VARCHAR** — "
+        log.append(f"**Ingested {path.name} → `{table}`: {n:,} rows × {c} columns, all VARCHAR** - "
                    "raw layer stays byte-faithful; every type coercion is a logged decision in the cleaning stage, not a CSV-parser default.")
     con.close()
     return log

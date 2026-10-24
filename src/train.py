@@ -1,6 +1,6 @@
-"""Stage 4 — Model: logistic regression baseline vs gradient-boosted trees.
+"""Stage 4 - Model: logistic regression baseline vs gradient-boosted trees.
 
-Why these two: the comparison the business actually faces — an interpretable
+Why these two: the comparison the business actually faces - an interpretable
 model whose coefficients a sporting director can read, versus a stronger
 learner that trades that transparency for ranking power. The metrics table
 and the recommendation live in docs/model_comparison.md.
@@ -115,12 +115,12 @@ def run() -> list[str]:
     fig, ax = plt.subplots(figsize=(8, 4.5))
     ax.barh(top["feature"], top["importance"], color="#4C78A8")
     ax.set_xlabel("Permutation importance (ROC-AUC drop when shuffled)")
-    ax.set_title("What drives player churn — gradient boosting, test set")
+    ax.set_title("What drives player churn - gradient boosting, test set")
     fig.tight_layout()
     fig.savefig(OUT / "feature_importance.png", dpi=150)
 
     # Business drivers: churn-rate crosstabs a non-technical reader can act on.
-    lines = ["# Churn drivers — plain-language crosstabs", "",
+    lines = ["# Churn drivers - plain-language crosstabs", "",
              f"Base churn rate: **{y.mean():.1%}** of the {len(df):,} in-scope players.", ""]
     for col, title in [("age_band", "Age band"), ("position_group", "Position"),
                        ("is_top3_in_club", "Top-3 player in squad (by rating)")]:
@@ -139,7 +139,7 @@ def run() -> list[str]:
 
     lr_m, gb_m = results["logistic_regression"], results["gradient_boosting"]
     return [
-        f"**Trained both models on {len(X_tr):,} players, evaluated on a held-out {len(X_te):,} (stratified, seed {SEED})** — "
+        f"**Trained both models on {len(X_tr):,} players, evaluated on a held-out {len(X_te):,} (stratified, seed {SEED})** - "
         f"LR: AUC {lr_m['roc_auc']}, recall {lr_m['recall']} · GBM: AUC {gb_m['roc_auc']}, recall {gb_m['recall']} "
         f"(vs no-churn baseline accuracy {results['baseline_predict_no_churn']['accuracy']}). "
         "Full table in `output/model_metrics.json`; interpretation in `docs/model_comparison.md`.",

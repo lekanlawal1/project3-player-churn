@@ -1,4 +1,4 @@
-# Churn drivers — plain-language crosstabs
+# Churn drivers - plain-language crosstabs
 
 Base churn rate: **36.8%** of the 12,288 in-scope players.
 

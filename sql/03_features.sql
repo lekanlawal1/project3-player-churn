@@ -1,4 +1,4 @@
--- 03: Feature engineering — the model-ready table.
+-- 03: Feature engineering - the model-ready table.
 --
 -- Squad-context features are the point of doing this in SQL: a player's churn
 -- risk isn't just who they are, it's where they stand in their squad's pecking

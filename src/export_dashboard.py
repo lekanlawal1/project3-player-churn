@@ -1,4 +1,4 @@
-"""Stage 5 — Dashboard export: score every player, ship data to the static dashboard.
+"""Stage 5 - Dashboard export: score every player, ship data to the static dashboard.
 
 Honesty rule for displayed risk scores: they are OUT-OF-FOLD predictions
 (5-fold cross_val_predict), so no player's shown risk comes from a model that
@@ -6,7 +6,7 @@ saw that player in training. Displaying in-sample scores would flatter the
 model exactly where the dashboard makes it easiest to check (every row shows
 predicted risk next to what actually happened).
 
-Output: dashboard/data.js — a single `const DATA = {...}` payload inlined the
+Output: dashboard/data.js - a single `const DATA = {...}` payload inlined the
 same way Project 1 ships its dashboard data (works from file:// and Pages,
 no fetch, no server).
 """
@@ -86,7 +86,7 @@ def run() -> list[str]:
     OUT_JS.write_text("const DATA = " + json.dumps(payload) + ";", encoding="utf-8")
     kb = OUT_JS.stat().st_size // 1024
     return [f"**Exported dashboard/data.js ({kb} KB): out-of-fold risk scores for all "
-            f"{len(df):,} players + aggregates** — every risk shown in the dashboard is a "
+            f"{len(df):,} players + aggregates** - every risk shown in the dashboard is a "
             "prediction from a model that never trained on that player (5-fold "
             "cross_val_predict); in-sample scores would flatter the model exactly where "
             "the UI invites checking predictions against actual outcomes."]

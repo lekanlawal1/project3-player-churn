@@ -1,4 +1,4 @@
--- 02: Churn label — did the player leave their club between editions?
+-- 02: Churn label - did the player leave their club between editions?
 --
 -- Scope: players present in BOTH editions with a club on both sides.
 --   - No FIFA 18 club → free agent, nothing to churn from.

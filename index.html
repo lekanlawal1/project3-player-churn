@@ -159,7 +159,7 @@
     <p class="eyebrow">SQL pipeline + churn model · FIFA 18 to 19</p>
     <h1>Player Churn <span class="accent-grad">Explorer</span> <span class="dim">FIFA 18 → 19</span></h1>
     <p class="sub">Which players leave their club before next season? A gradient-boosted model scores all
-      <b id="h-n"></b> players present in both editions — and because we know what actually happened,
+      <b id="h-n"></b> players present in both editions - and because we know what actually happened,
       every prediction below is shown next to its real outcome. Risk scores are out-of-fold: no player
       is scored by a model that trained on them.
       <a href="https://github.com/lekanlawal1/project3-player-churn">Source, SQL pipeline &amp; docs</a></p>
@@ -175,7 +175,7 @@
 </div>
 
 <div class="card">
-  <h2>Retention watchlist — search any club</h2>
+  <h2>Retention watchlist - search any club</h2>
   <p class="note">Default view: the 25 highest-risk players in the data. Type a club (e.g. Real Madrid, Arsenal) to see its whole squad ranked by risk, or search a player. Click a column header to sort. <b>Outcome</b> is what really happened in FIFA 19.</p>
   <div class="controls">
     <input id="club" list="clubs" placeholder="Filter by club…">
@@ -198,7 +198,7 @@
     <p class="note">Forwards are the flight risks; goalkeepers barely move.</p>
     <div class="plot" id="p-pos"></div></div>
   <div class="card"><h2>Churn rate by age band</h2>
-    <p class="note">Ages 21–24 are peak departure years — the prime sell window.</p>
+    <p class="note">Ages 21–24 are peak departure years - the prime sell window.</p>
     <div class="plot" id="p-age"></div></div>
   <div class="card"><h2>Churn rate by wage position in squad</h2>
     <p class="note">Paid above your squad’s median → likelier to leave.</p>
@@ -262,11 +262,11 @@ Plotly.newPlot("p-calib", [
   { type: "scatter", mode: "lines+markers", name: "Predicted risk",
     x: DATA.calibration.map(r=>r[0]+1), y: DATA.calibration.map(r=>r[1]),
     line: { color: css("--s2"), width: 2 }, marker: { size: 8 },
-    hovertemplate: "Decile %{x} — predicted %{y:.0%}<extra></extra>" },
+    hovertemplate: "Decile %{x} - predicted %{y:.0%}<extra></extra>" },
   { type: "scatter", mode: "lines+markers", name: "Actual churn",
     x: DATA.calibration.map(r=>r[0]+1), y: DATA.calibration.map(r=>r[2]),
     line: { color: css("--s1"), width: 2 }, marker: { size: 8 },
-    hovertemplate: "Decile %{x} — actually left: %{y:.0%}<extra></extra>" },
+    hovertemplate: "Decile %{x} - actually left: %{y:.0%}<extra></extra>" },
 ], { ...LAYOUT, legend: { orientation: "h", y: 1.15 },
      xaxis: { ...AX, title: { text: "risk decile (1 = safest)", font: { size: 11 } }, dtick: 1 },
      yaxis: { ...AX, tickformat: ".0%", rangemode: "tozero" } }, CFG);
@@ -332,7 +332,7 @@ function render() {
     </tr>`;
   }).join("");
   document.getElementById("tally").textContent = (club || q)
-    ? `${rows.length} players match — model called ${rows.filter(r => (r[6]>=0.5)===(r[7]===1)).length} of them correctly.`
+    ? `${rows.length} players match - model called ${rows.filter(r => (r[6]>=0.5)===(r[7]===1)).length} of them correctly.`
     : `Showing the top 25 risks of ${P.length.toLocaleString()} players. Of these 25, ${shown.filter(r=>r[7]===1).length} really did leave.`;
 }
 
@@ -375,7 +375,7 @@ function openPlayer(r) {
       <div class="dp-stat"><div class="l">Predicted risk</div><div class="v" style="color:${riskColor(risk)}">${(risk*100).toFixed(0)}%</div></div>
       <div class="dp-stat"><div class="l">Risk percentile</div><div class="v">${ordinal(pct)}</div></div>
     </div>
-    <p class="dp-percentile">Riskier than <b>${pct}%</b> of all ${P.length.toLocaleString()} tracked players — and ${out ? "did in fact leave" : "stayed put"} in FIFA 19.</p>
+    <p class="dp-percentile">Riskier than <b>${pct}%</b> of all ${P.length.toLocaleString()} tracked players - and ${out ? "did in fact leave" : "stayed put"} in FIFA 19.</p>
 
     <h4 class="dp-section-title">Risk in context</h4>
     <p class="dp-note">This player's predicted risk against players sharing the same position, age band, wage tier, and squad.</p>

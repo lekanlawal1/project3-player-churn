@@ -1,11 +1,11 @@
--- 01: Entity resolution — map each FIFA 18 club to its FIFA 19 name.
+-- 01: Entity resolution - map each FIFA 18 club to its FIFA 19 name.
 --
 -- Problem: club labels drift between editions ("Real Madrid CF" → "Real Madrid",
 -- "FC Bayern Munich" → "FC Bayern München"). A naive string comparison counts a
 -- whole renamed squad as "transferred", inflating churn from ~29% to 45%.
 --
 -- Fix: majority vote. For each FIFA 18 club, the FIFA 19 club most of its
--- retained players ended up at IS the same club under its new name — real
+-- retained players ended up at IS the same club under its new name - real
 -- transfers scatter across many destinations and lose the vote. Requires at
 -- least 3 voters so a tiny club with one retained player can't self-certify.
 
